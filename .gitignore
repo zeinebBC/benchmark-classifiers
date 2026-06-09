@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.log
+*.out
+mlruns/
+checkpoints/
+model_weights/
+.env
