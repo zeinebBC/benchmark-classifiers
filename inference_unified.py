@@ -104,13 +104,9 @@ def preprocess_data(args) -> None:
             / "pp_data" / args.dataset
 
     images_dir = raw / f"images{split_suffix}"
-    labels_dir = raw / f"labels{split_suffix}"
 
     if not images_dir.exists():
         raise FileNotFoundError(f"Raw images not found: {images_dir}")
-    if not labels_dir.exists():
-        print(f"[preprocess] WARNING: labels dir not found ({labels_dir}) — "
-              "cropping without saving label crops.")
 
     cropped_dir   = pp / f"raw_cropped{split_suffix}"
     resampled_dir = pp / f"resampled{split_suffix}"
@@ -120,7 +116,6 @@ def preprocess_data(args) -> None:
     print(f"[preprocess] Step 1/3 — cropping  →  {cropped_dir}")
     batch_crop_and_save(
         images_dir = images_dir,
-        labels_dir = labels_dir,
         output_dir = cropped_dir,
         margin_min = 20,
         split      = split_suffix,

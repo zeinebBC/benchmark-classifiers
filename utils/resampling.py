@@ -95,6 +95,7 @@ def batch_resample_and_save(
         sitk.WriteImage(res_image, str(out_img_path))
 
         # --- Optional label resampling
+        out_label_path = None
         if labels_dir.exists():
             label_path = Path(labels_dir) / f"{uid}.nii.gz"
             out_label_path = resampled_labels_dir / f"{uid}_seg.nii.gz"

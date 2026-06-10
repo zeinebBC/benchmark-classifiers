@@ -80,11 +80,11 @@ def crop_to_label_region(data: torch.Tensor,
 
 def batch_crop_and_save(
     images_dir: str,
-    labels_dir: str,
     output_dir: str,
     margin_min: float = 15.0,
     overwrite: bool = False,
-    crop_labels: bool = True,
+    crop_labels: bool = False,
+    labels_dir: str | None = None,
     split:str ="Tr",
 ):
     """
@@ -99,7 +99,7 @@ def batch_crop_and_save(
         crop_labels (bool): whether to crop the label maps along with images
     """
     images_dir = Path(images_dir)
-    labels_dir = Path(labels_dir)
+    labels_dir = Path(labels_dir) if labels_dir is not None else None
     output_dir = Path(output_dir)
     cropped_images_dir = output_dir / "images_cropped"
     cropped_labels_dir = output_dir / "labels_cropped"
@@ -123,17 +123,23 @@ def batch_crop_and_save(
             print(f"Skipping {uid}, already cropped.")
             continue
         
-        label_path = labels_dir / f"{uid}.nii.gz"
         colon_label_path = Path( os.environ.get("auto_seg")) / Path(f"{uid}.nii.gz")
 
-        if not label_path.exists():
-            print(f"Label not found for {uid}, skipping.")
-            continue
-
         img_nii = nib.load(str(img_path))
-        seg_nii = nib.load(str(label_path))
         data = img_nii.get_fdata().astype(np.float32)
-        seg = seg_nii.get_fdata().astype(np.uint8)
+
+        if crop_labels and labels_dir is not None:
+            label_path = Path(labels_dir) / f"{uid}.nii.gz"
+            if label_path.exists():
+                seg_nii = nib.load(str(label_path))
+                seg = seg_nii.get_fdata().astype(np.uint8)
+            else:
+                print(f"[{uid}] No GT label found — skipping label crop.")
+                seg_nii = None
+                seg = np.zeros(data.shape[:3], dtype=np.uint8)
+        else:
+            seg_nii = None
+            seg = np.zeros(data.shape[:3], dtype=np.uint8)
     
         ######################################################################################
         #seg_before = seg.sum()
@@ -168,7 +174,7 @@ def batch_crop_and_save(
         cropped_img_nii = nib.Nifti1Image(data_cropped[0].cpu().numpy(), affine=img_nii.affine)
         nib.save(cropped_img_nii, str(out_img_path))
 
-        if crop_labels:
+        if crop_labels and has_label:
             cropped_seg_nii = nib.Nifti1Image(seg_cropped.cpu().numpy(), affine=seg_nii.affine)
             nib.save(cropped_seg_nii, str(out_label_path))
 
@@ -180,7 +186,7 @@ def batch_crop_and_save(
             "original_shape": original_shape,
             "cropped_shape": cropped_shape
         }
-        if crop_labels:
+        if crop_labels and has_label:
             record["label_path"] = str(out_label_path)
         records.append(record)
 
@@ -190,6 +196,8 @@ def batch_crop_and_save(
 
     # ---- Compute global shape statistics
     def compute_shape_stats(shapes):
+        if not shapes:
+            return {}
         shapes = np.array(shapes)
         total_voxels = np.prod(shapes, axis=1)
         return {

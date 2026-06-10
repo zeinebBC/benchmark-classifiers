@@ -10,3 +10,6 @@ mlruns/
 checkpoints/
 model_weights/
 .env
+cam_benchmark.py
+compare_cams.py
+compare_config.json
